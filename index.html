@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Interactive 3D massing model of a 20 × 55 × 7 m auditorium: 15 × 7 m stage and 1,360 folding chairs either side of a 2 m centre aisle. Plan, section and eye-level views.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nairobi Auditorium Model">
+<meta property="og:description" content="Interactive 3D massing model of a 20 × 55 × 7 m auditorium: 15 × 7 m stage and 1,360 folding chairs either side of a 2 m centre aisle. Plan, section and eye-level views.">
+<meta property="og:url" content="https://brianpitre.github.io/nairobi-auditorium-model/">
+<meta property="og:image" content="https://brianpitre.github.io/nairobi-auditorium-model/preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<title>Nairobi Auditorium Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an architect's drawing sheet. Framed model viewport on the left; title block,
+   depth strip and dimension schedule in the right-hand strip (drops below the viewport on phones). */
+:root {
+  --paper: #e6e9ed;
+  --sheet: #f5f7f9;
+  --panel: #fcfdfd;
+  --ink: #1a2130;
+  --ink-2: #586274;
+  --rule: #d2d7de;
+  --dim: #1f50c2;
+  --seat: #93384a;
+  --stage-c: #2b2e34;
+  --amber: #8a5200;
+  --amber-bg: #fbe9c8;
+  --ok: #2c7349;
+  --ok-bg: #e2f1e7;
+  --floor-c: #d8d3ca;
+  --label-bg: rgba(252, 253, 253, 0.94);
+  --grid: #d2d7de;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1115; --sheet: #151920; --panel: #1a1e25; --ink: #e5e9ef; --ink-2: #9aa4b3;
+    --rule: #2d333d; --dim: #86aaff; --seat: #c95b70; --stage-c: #5c626d; --amber: #f0b65a;
+    --amber-bg: #3a2b12; --ok: #74c895; --ok-bg: #16301f; --floor-c: #57534b;
+    --label-bg: rgba(26, 30, 37, 0.94); --grid: #262c36; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1115; --sheet: #151920; --panel: #1a1e25; --ink: #e5e9ef; --ink-2: #9aa4b3;
+  --rule: #2d333d; --dim: #86aaff; --seat: #c95b70; --stage-c: #5c626d; --amber: #f0b65a;
+  --amber-bg: #3a2b12; --ok: #74c895; --ok-bg: #16301f; --floor-c: #57534b;
+  --label-bg: rgba(26, 30, 37, 0.94); --grid: #262c36; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 14px/1.5 var(--f-body);
+}
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 348px; gap: 16px; height: 100%; }
+
+/* ---- Model sheet ---- */
+.sheet { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--sheet); border: 1px solid var(--ink); }
+.sheet::after { content: ""; position: absolute; inset: 6px; border: 1px solid var(--rule); pointer-events: none; z-index: 1; }
+#viewport { position: absolute; inset: 0; }
+#viewport canvas { display: block; width: 100%; height: 100%; }
+.labels { position: absolute; top: 0; left: 0; pointer-events: none; }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; color: var(--ink-2); font: 500 13px var(--f-mono); }
+
+.toolbar { position: absolute; top: 18px; left: 18px; right: 18px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; pointer-events: none; }
+.toolbar > * { pointer-events: auto; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--ink); }
+.seg button {
+  font: 600 12px/1 var(--f-body); letter-spacing: 0.02em; color: var(--ink);
+  background: transparent; border: 0; border-right: 1px solid var(--rule); padding: 9px 12px; cursor: pointer;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.chk { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; background: var(--panel); border: 1px solid var(--rule); font: 500 12px/1 var(--f-body); cursor: pointer; }
+.chk input { margin: 0; accent-color: var(--dim); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--dim); outline-offset: 2px; }
+
+.foot { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; pointer-events: none; }
+.scalebar { font: 500 10.5px/1 var(--f-mono); color: var(--ink); background: var(--label-bg); padding: 6px 8px 5px; }
+.scalebar .bar { display: flex; height: 6px; border: 1px solid var(--ink); }
+.scalebar .bar i { flex: 1; }
+.scalebar .bar i:nth-child(odd) { background: var(--ink); }
+.scalebar .ticks { position: relative; height: 12px; margin-top: 4px; }
+.scalebar .ticks span { position: absolute; top: 0; }
+.scalebar .ticks span:nth-child(1) { left: 0; }
+.scalebar .ticks span:nth-child(2) { left: 50%; transform: translateX(-50%); }
+.scalebar .ticks span:nth-child(3) { right: 0; }
+.caption { margin: 0 0 0 auto; padding: 4px 7px; max-width: 60%; text-align: right; font: 500 11px/1.35 var(--f-mono); color: var(--ink-2); background: var(--label-bg); }
+
+/* 3D annotations */
+.lbl {
+  display: inline-block; padding: 2px 5px; white-space: nowrap;
+  font: 500 11px/1.15 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--dim);
+  background: var(--label-bg); border: 1px solid color-mix(in srgb, var(--dim) 40%, transparent);
+}
+.zone {
+  padding: 5px 9px 6px; white-space: nowrap; text-align: center;
+  font: 700 11px/1.2 var(--f-display); font-stretch: 115%; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink); background: var(--label-bg); border: 1px solid var(--ink);
+}
+.zone span { display: block; margin-top: 3px; font: 500 10.5px/1.2 var(--f-mono); letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+
+/* ---- Title-block strip ---- */
+.panel { min-width: 0; min-height: 0; overflow: auto; background: var(--panel); border: 1px solid var(--ink); }
+.tb { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--ink); }
+.tb > div { min-width: 0; padding: 9px 14px 10px; border-top: 1px solid var(--rule); }
+.tb .wide { grid-column: 1 / -1; border-top: 0; padding: 16px 14px 14px; }
+.tb .c2 { border-left: 1px solid var(--rule); }
+.k { display: block; font: 600 9.5px/1.2 var(--f-display); font-stretch: 112%; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+.v { display: block; margin-top: 3px; font: 500 13px/1.3 var(--f-body); }
+h1 { margin: 5px 0 3px; font: 760 23px/1.08 var(--f-display); font-stretch: 118%; text-wrap: balance; }
+.sub { margin: 0; font-size: 13px; color: var(--ink-2); }
+.sec { padding: 16px 14px 18px; border-bottom: 1px solid var(--rule); }
+.sec:last-child { border-bottom: 0; }
+h2 { margin: 0 0 11px; font: 700 10.5px/1.25 var(--f-display); font-stretch: 112%; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.depthbar { display: flex; height: 20px; border: 1px solid var(--ink); }
+.depthbar i { display: block; min-width: 3px; }
+.depthbar i + i { border-left: 1px solid var(--panel); }
+.s-stage { background: var(--stage-c); }
+.s-seat { background: var(--seat); }
+.s-open { background: var(--floor-c); }
+.ruler { position: relative; height: 18px; margin-top: 3px; font: 500 10px/1 var(--f-mono); color: var(--ink-2); }
+.ruler i { position: absolute; top: 0; width: 1px; height: 4px; background: var(--ink-2); }
+.ruler span { position: absolute; top: 7px; transform: translateX(-50%); white-space: nowrap; }
+.ruler span:first-of-type { transform: none; }
+.ruler span.end { transform: translateX(-100%); }
+.legend { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 9px; font-size: 13px; }
+.legend .sw { width: 12px; height: 12px; border: 1px solid var(--ink); }
+.legend b, .total b { font: 500 12.5px var(--f-mono); font-variant-numeric: tabular-nums; }
+.total { display: flex; justify-content: space-between; margin: 9px 0 0; padding-top: 8px; border-top: 1px solid var(--rule); font-size: 13px; }
+
+.sched { list-style: none; margin: 0; padding: 0; }
+.sched li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; padding: 8px 0; border-top: 1px solid var(--rule); }
+.sched li:first-child { border-top: 0; padding-top: 0; }
+.sched .item { font-size: 12.5px; color: var(--ink-2); }
+.sched .val { grid-column: 1 / -1; font: 500 13px/1.35 var(--f-mono); font-variant-numeric: tabular-nums; }
+.chip { font: 600 9px/1 var(--f-display); font-stretch: 112%; font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; padding: 3px 5px; border: 1px solid; }
+.chip.given { color: var(--ink-2); border-color: var(--rule); }
+.chip.assumed { color: var(--amber); background: var(--amber-bg); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.chip.derived { color: var(--dim); border-color: color-mix(in srgb, var(--dim) 40%, transparent); }
+.chip.confirmed { color: var(--ok); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.hint { margin: 0; font-size: 13px; color: var(--ink-2); max-width: 65ch; }
+
+/* Clean sheet for exported renders */
+.shot .ui-only { display: none !important; }
+.shot .sec { padding-block: 12px 13px; }
+.shot .sched li { padding-block: 6px; }
+.bare .app { grid-template-columns: minmax(0, 1fr); }
+.bare .panel { display: none; }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .sheet { height: 68vh; height: 68svh; min-height: 380px; }
+  .panel { overflow: visible; }
+  .caption { max-width: 55%; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="sheet" aria-label="3D model of the auditorium">
+    <div id="viewport"></div>
+    <p id="fallback" class="fallback">Loading the 3D model…</p>
+
+    <div class="toolbar ui-only">
+      <div class="seg" role="group" aria-label="Choose a view">
+        <button type="button" id="v-3d" data-view="3d" aria-pressed="true">3D</button>
+        <button type="button" id="v-plan" data-view="plan" aria-pressed="false">Plan</button>
+        <button type="button" id="v-section" data-view="section" aria-pressed="false">Section</button>
+        <button type="button" id="v-back" data-view="back" aria-pressed="false">From back</button>
+        <button type="button" id="v-stage" data-view="stage" aria-pressed="false">From stage</button>
+      </div>
+      <label class="chk" for="dimsToggle"><input type="checkbox" id="dimsToggle" checked> Dimensions</label>
+    </div>
+
+    <div class="foot">
+      <div id="scalebar" class="scalebar" hidden>
+        <div class="bar"><i></i><i></i><i></i><i></i></div>
+        <div class="ticks"><span>0</span><span class="t-mid">5</span><span class="t-end">10 m</span></div>
+      </div>
+      <p id="caption" class="caption">Cut-away 3D view, near walls and ceiling removed</p>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <header class="tb">
+      <div class="wide">
+        <span class="k">Project</span>
+        <h1 data-k="title">Nairobi Auditorium Model</h1>
+        <p class="sub" data-k="sub">20 × 55 × 7 m massing model for discussion</p>
+      </div>
+      <div><span class="k">Drawing</span><span class="v" id="tbView">3D overview</span></div>
+      <div class="c2"><span class="k">Revision</span><span class="v" data-k="rev">Draft 2</span></div>
+      <div><span class="k">Units</span><span class="v">Metres</span></div>
+      <div class="c2"><span class="k">Date</span><span class="v" data-k="date">29 Sep 2026</span></div>
+    </header>
+
+    <section class="sec">
+      <h2>Room depth, stage wall to back wall</h2>
+      <div class="depthbar" role="img" aria-label="Stage 7.0 m, clear floor 2.0 m, seating 40.0 m, open space 6.0 m, total 55.0 m">
+        <i class="s-stage" data-flex="stage" style="flex-grow: 7"></i>
+        <i class="s-open" data-flex="front" style="flex-grow: 2"></i>
+        <i class="s-seat" data-flex="seat" style="flex-grow: 40"></i>
+        <i class="s-open" data-flex="rear" style="flex-grow: 6"></i>
+      </div>
+      <div class="ruler" aria-hidden="true">
+        <i style="left: 0%"></i><i style="left: 18.18%"></i><i style="left: 36.36%"></i><i style="left: 54.55%"></i>
+        <i style="left: 72.73%"></i><i style="left: 90.91%"></i><i style="left: calc(100% - 1px)"></i>
+        <span style="left: 0%">0</span><span style="left: 18.18%">10</span><span style="left: 36.36%">20</span>
+        <span style="left: 54.55%">30</span><span style="left: 72.73%">40</span><span class="end" style="left: 100%">55 m</span>
+      </div>
+      <ul class="legend">
+        <li><i class="sw s-stage"></i><span>Stage</span><b data-k="d-stage">7.0</b></li>
+        <li><i class="sw s-open"></i><span>Clear floor in front of stage</span><b data-k="d-front">2.0</b></li>
+        <li><i class="sw s-seat"></i><span>Seating</span><b data-k="d-seat">40.0</b></li>
+        <li><i class="sw s-open"></i><span>Open space behind last row</span><b data-k="d-rear">6.0</b></li>
+      </ul>
+      <p class="total"><span>Room depth</span><b data-k="d-total">55.0 m</b></p>
+    </section>
+
+    <section class="sec">
+      <h2>Dimension schedule (m)</h2>
+      <ul class="sched">
+        <li><span class="item">Room</span><em class="chip given">Given</em><span class="val" data-k="room">20.0 W × 55.0 D × 7.0 H</span></li>
+        <li><span class="item">Stage</span><em class="chip given">Given</em><span class="val" data-k="stage">15.0 W × 7.0 D × 0.8 H</span></li>
+        <li><span class="item">Stage position</span><em class="chip confirmed">Confirmed</em><span class="val" data-k="stagepos">Centred on the end wall, 2.5 clear each side</span></li>
+        <li><span class="item">Clear floor in front of stage</span><em class="chip confirmed">Confirmed</em><span class="val" data-k="front">2.0</span></li>
+        <li><span class="item">Seating block</span><em class="chip given">Given</em><span class="val" data-k="block">40.0 D × 18.0 W</span></li>
+        <li><span class="item">Side aisles along the walls</span><em class="chip confirmed">Confirmed</em><span class="val" data-k="aisle">1.0 each</span></li>
+        <li><span class="item">Centre aisle</span><em class="chip given">Given</em><span class="val" data-k="caisle">2.0</span></li>
+        <li><span class="item">Open space behind last row</span><em class="chip given">Given</em><span class="val" data-k="rear">6.0 (1.0 walkway + 5.0 added)</span></li>
+        <li><span class="item">Chairs</span><em class="chip given">Given</em><span class="val" data-k="chair">Standard metal folding chair, 0.46 wide (18 in)</span></li>
+        <li><span class="item">Row spacing</span><em class="chip given">Given</em><span class="val" data-k="pitch">1.00 row to row</span></li>
+        <li><span class="item">Seats as drawn</span><em class="chip derived">Derived</em><span class="val" data-k="seats">2 × 17 per row × 40 rows = 1,360</span></li>
+        <li><span class="item">Floor and ceiling</span><em class="chip confirmed">Confirmed</em><span class="val">Flat floor, flat ceiling</span></li>
+        <li><span class="item">Clear height over stage</span><em class="chip derived">Derived</em><span class="val" data-k="clearH">6.2</span></li>
+      </ul>
+      <p class="note">No placeholders left: every value is given, confirmed, or worked out from those. Chairs sit about 1 cm apart so every aisle keeps its exact width.</p>
+    </section>
+
+    <section class="sec ui-only">
+      <h2>Moving around</h2>
+      <p class="hint">Drag to orbit, right-drag to pan, scroll to zoom. On a touch screen, one finger orbits and two fingers pan and zoom. In Plan and Section, dragging pans. In the two eye-level views, dragging looks around.</p>
+    </section>
+  </aside>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script>
+  // If the model has not drawn after 12 s, say why instead of showing "Loading" forever.
+  setTimeout(function () {
+    var f = document.getElementById('fallback');
+    if (f && !f.hidden) f.textContent = 'The 3D model could not start. It needs WebGL and access to cdn.jsdelivr.net.';
+  }, 12000);
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ---------- The brief, in metres ----------
+   Draft 2: every value is given by the client or confirmed by them. */
+const REV = 'Draft 2', REV_DATE = '29 Sep 2026';
+const ROOM  = { w: 20, d: 50 + 5, h: 7 };   // 50 m room plus 5 m of open space added at the rear
+const STAGE = { w: 15, d: 7, h: 0.8 };      // centred on the end wall, against it
+const SEAT_DEPTH   = 40;
+const FRONT_CLEAR  = 2.0;                   // open floor between the stage lip and the first row
+const AISLE        = 1.0;                   // side aisles along the walls
+const CENTER_AISLE = 2.0;
+const CHAIR_W      = 0.457;                 // standard metal folding chair, 18 in wide
+const ROW_PITCH    = 1.0;                   // row to row
+
+// x runs across the room (+x = the audience's right), y is up,
+// z runs from the stage end wall (0) to the back wall (D).
+const { w: W, d: D, h: H } = ROOM;
+const REAR     = D - STAGE.d - FRONT_CLEAR - SEAT_DEPTH;   // open floor behind the last row
+const Z0       = STAGE.d + FRONT_CLEAR;                     // front edge of the seating
+const Z1       = Z0 + SEAT_DEPTH;
+const BLOCK_W  = W - 2 * AISLE;                             // wall aisle to wall aisle
+const HALF_W   = (BLOCK_W - CENTER_AISLE) / 2;              // seating on one side of the centre aisle
+const PER_SIDE = Math.floor(HALF_W / CHAIR_W + 1e-6);
+const PITCH    = HALF_W / PER_SIDE;                         // chairs spread evenly so every aisle stays exact
+const PER_ROW  = 2 * PER_SIDE;
+const ROWS     = Math.floor(SEAT_DEPTH / ROW_PITCH + 1e-6);
+const SEATS    = PER_ROW * ROWS;
+
+/* ---------- Schedule text comes from the same numbers as the model ---------- */
+const f1 = n => n.toFixed(1);
+const put = (k, s) => document.querySelectorAll(`[data-k="${k}"]`).forEach(e => { e.textContent = s; });
+const NAME = 'Nairobi Auditorium Model';
+put('title', NAME);
+put('sub', `${W} × ${D} × ${H} m massing model for discussion`);
+put('rev', REV);
+put('date', REV_DATE);
+put('room', `${f1(W)} W × ${f1(D)} D × ${f1(H)} H`);
+put('stage', `${f1(STAGE.w)} W × ${f1(STAGE.d)} D × ${f1(STAGE.h)} H`);
+put('stagepos', `Centred on the end wall, ${f1((W - STAGE.w) / 2)} clear each side`);
+put('front', f1(FRONT_CLEAR));
+put('block', `${f1(SEAT_DEPTH)} D × ${f1(BLOCK_W)} W`);
+put('aisle', `${f1(AISLE)} each`);
+put('caisle', f1(CENTER_AISLE));
+put('chair', `Standard metal folding chair, ${CHAIR_W.toFixed(2)} wide (18 in)`);
+put('pitch', `${ROW_PITCH.toFixed(2)} row to row`);
+put('seats', `2 × ${PER_SIDE} per row × ${ROWS} rows = ${SEATS.toLocaleString('en-US')}`);
+put('clearH', f1(H - STAGE.h));
+put('d-stage', f1(STAGE.d)); put('d-front', f1(FRONT_CLEAR)); put('d-seat', f1(SEAT_DEPTH));
+put('d-rear', f1(REAR)); put('d-total', `${f1(D)} m`);
+const flex = { stage: STAGE.d, front: FRONT_CLEAR, seat: SEAT_DEPTH, rear: REAR };
+document.querySelectorAll('[data-flex]').forEach(e => { e.style.flexGrow = flex[e.dataset.flex]; });
+document.querySelector('.depthbar').setAttribute('aria-label',
+  `Stage ${f1(STAGE.d)} m, clear floor ${f1(FRONT_CLEAR)} m, seating ${f1(SEAT_DEPTH)} m, open space ${f1(REAR)} m, total ${f1(D)} m`);
+// Ruler under the depth strip: a tick every 10 m, labels clear of the end label
+{
+  const ruler = document.querySelector('.ruler');
+  const mark = (tag, left, text, cls) => {
+    const e = document.createElement(tag);
+    e.style.left = left;
+    if (text) e.textContent = text;
+    if (cls) e.className = cls;
+    ruler.append(e);
+  };
+  ruler.replaceChildren();
+  for (let mm = 0; mm < D; mm += 10) mark('i', `${(mm / D) * 100}%`);
+  mark('i', 'calc(100% - 1px)');
+  for (let mm = 0; D - mm >= 8; mm += 10) mark('span', `${(mm / D) * 100}%`, String(mm));
+  mark('span', '100%', `${D} m`, 'end');
+}
+
+/* ---------- Renderer, cameras, controls ---------- */
+// Local render switches (?shot, ?shot&bare, ?light). The published page never sees a query string.
+const params = new URLSearchParams(location.search);
+const SHOT = params.has('shot');
+const BARE = SHOT && params.has('bare');
+if (SHOT) document.documentElement.classList.add('shot');
+if (BARE) document.documentElement.classList.add('bare');
+if (params.has('light')) document.documentElement.dataset.theme = 'light';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const host = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;     // nothing moves, so the shadow map is drawn once
+host.appendChild(renderer.domElement);
+
+const labels = new CSS2DRenderer();
+labels.domElement.className = 'labels';
+host.appendChild(labels.domElement);
+
+const scene = new THREE.Scene();
+const persp = new THREE.PerspectiveCamera(30, 1, 1, 600);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 600);
+let camera = persp;
+
+const controls = new OrbitControls(persp, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.09;
+controls.zoomToCursor = true;
+controls.minZoom = 0.6;
+controls.maxZoom = 16;
+
+/* ---------- Light ---------- */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb3aca2, 1.35));
+const sun = new THREE.DirectionalLight(0xffffff, 2.3);
+sun.position.set(-20, 44, 10);
+sun.target.position.set(0, 0, D / 2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(SHOT ? 4096 : 2048, SHOT ? 4096 : 2048);
+Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 1, far: 150 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.02;
+const fill = new THREE.DirectionalLight(0xffffff, 0.45);
+fill.position.set(24, 18, 70);
+scene.add(sun, sun.target, fill);
+
+/* ---------- Materials ---------- */
+const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0, ...o });
+const M = {
+  floor: mat(0xd6d2cb),
+  zone: mat(0xdcc9c9, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+  wall: mat(0xf2f1ee),
+  ceil: mat(0xe4e3df, { emissive: 0x8e8c86 }),   // lit from below only, so give it its own glow
+  stageTop: mat(0x3a3d44, { roughness: 0.6 }),
+  stageSide: mat(0x232529, { roughness: 0.8 }),
+  seat: mat(0x8f3444, { roughness: 0.75 }),
+  frame: mat(0x34373d, { roughness: 0.55, metalness: 0.25 }),
+  person: mat(0x7b8491, { roughness: 0.85 }),
+};
+
+/* ---------- Room: every surface faces inward, so from outside the near walls
+   and the ceiling drop away and you look straight in (a cut-away model). ---------- */
+function plane(w, h, m, pos, rot) {
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
+  p.position.set(...pos);
+  p.rotation.set(...rot);
+  p.receiveShadow = true;
+  scene.add(p);
+  return p;
+}
+plane(W, D, M.floor, [0, 0, D / 2], [-Math.PI / 2, 0, 0]);
+plane(W, D, M.ceil, [0, H, D / 2], [Math.PI / 2, 0, 0]);
+plane(D, H, M.wall, [-W / 2, H / 2, D / 2], [0, Math.PI / 2, 0]);
+plane(D, H, M.wall, [W / 2, H / 2, D / 2], [0, -Math.PI / 2, 0]);
+plane(W, H, M.wall, [0, H / 2, 0], [0, 0, 0]);
+plane(W, H, M.wall, [0, H / 2, D], [0, Math.PI, 0]);
+
+// Seating footprints, one each side of the centre aisle
+for (const s of [-1, 1]) {
+  const zone = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W, SEAT_DEPTH), M.zone);
+  zone.rotation.x = -Math.PI / 2;
+  zone.position.set(s * (CENTER_AISLE + HALF_W) / 2, 0.002, Z0 + SEAT_DEPTH / 2);
+  zone.receiveShadow = true;
+  scene.add(zone);
+}
+
+/* ---------- Stage ---------- */
+const stage = new THREE.Mesh(
+  new THREE.BoxGeometry(STAGE.w, STAGE.h, STAGE.d),
+  [M.stageSide, M.stageSide, M.stageTop, M.stageSide, M.stageSide, M.stageSide]
+);
+stage.position.set(0, STAGE.h / 2, STAGE.d / 2);
+stage.castShadow = stage.receiveShadow = true;
+scene.add(stage);
+
+/* ---------- Seats: one instanced metal folding chair, facing the stage (-z) ----------
+   18 in wide, about 19 in deep, 31 in tall, seat at 17 in. */
+const box = (w, h, d, x, y, z, tilt = 0) => new THREE.BoxGeometry(w, h, d).rotateX(tilt).translate(x, y, z);
+const tube = (x, y0, z0, y1, z1) => new THREE.BoxGeometry(0.022, Math.hypot(y1 - y0, z1 - z0), 0.022)
+  .rotateX(Math.atan2(z1 - z0, y1 - y0)).translate(x, (y0 + y1) / 2, (z0 + z1) / 2);
+const frameX = CHAIR_W / 2 - 0.011;
+const seatGeo = mergeGeometries([
+  mergeGeometries([box(0.415, 0.03, 0.40, 0, 0.415, -0.01), box(0.39, 0.15, 0.02, 0, 0.70, 0.215, 0.11)]),
+  mergeGeometries([-frameX, frameX].flatMap(x => [
+    tube(x, 0, 0.15, 0.79, 0.235),       // rear leg rising into the back upright
+    tube(x, 0, -0.22, 0.415, -0.17),     // front leg up to the seat
+  ])),
+], true);
+const seats = new THREE.InstancedMesh(seatGeo, [M.seat, M.frame], SEATS);
+{
+  const m4 = new THREE.Matrix4();
+  let k = 0;
+  for (let r = 0; r < ROWS; r++) {
+    const z = Z0 + (r + 1) * ROW_PITCH - 0.27;   // chair back sits at the back of its row band
+    for (const x0 of [-W / 2 + AISLE, CENTER_AISLE / 2])
+      for (let c = 0; c < PER_SIDE; c++) seats.setMatrixAt(k++, m4.makeTranslation(x0 + PITCH * (c + 0.5), 0, z));
+  }
+}
+seats.castShadow = seats.receiveShadow = true;
+scene.add(seats);
+
+/* ---------- People for scale (1.73 m) ---------- */
+const bodyGeo = new THREE.CapsuleGeometry(0.2, 1.05, 4, 12);
+const headGeo = new THREE.SphereGeometry(0.13, 18, 12);
+function person(x, y, z) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(bodyGeo, M.person); b.position.y = 0.725;
+  const h = new THREE.Mesh(headGeo, M.person); h.position.y = 1.6;
+  b.castShadow = h.castShadow = true;
+  g.add(b, h);
+  g.position.set(x, y, z);
+  scene.add(g);
+}
+person(-3, STAGE.h, 3.2);
+person(2.2, STAGE.h, 4.6);
+person(6, 0, Z0 - 0.6);
+person(-W / 2 + AISLE / 2, 0, 24);
+person(-0.6, 0, Z0 + 24);   // in the centre aisle, off the sightline from the back
+person(3.5, 0, D - REAR / 2);
+
+/* ---------- Ground grid (5 m squares, lines up with the walls) ---------- */
+const gp = [];
+for (let x = -40; x <= 40; x += 5) gp.push(x, -0.03, -30, x, -0.03, 80);
+for (let z = -30; z <= 80; z += 5) gp.push(-40, -0.03, z, 40, -0.03, z);
+const gridGeo = new THREE.BufferGeometry();
+gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
+const grid = new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({ color: 0xd2d7de }));
+scene.add(grid);
+
+/* ---------- Room outline: an edge shows only while one of the two surfaces it
+   bounds faces the camera, so the removed walls leave no stray lines. ---------- */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const SURF = [
+  { n: V(0, 1, 0), p: V(0, 0, D / 2) },            // 0 floor
+  { n: V(0, -1, 0), p: V(0, H, D / 2) },           // 1 ceiling
+  { n: V(1, 0, 0), p: V(-W / 2, H / 2, D / 2) },   // 2 left wall
+  { n: V(-1, 0, 0), p: V(W / 2, H / 2, D / 2) },   // 3 right wall
+  { n: V(0, 0, 1), p: V(0, H / 2, 0) },            // 4 stage end wall
+  { n: V(0, 0, -1), p: V(0, H / 2, D) },           // 5 back wall
+];
+const edgeMat = new LineMaterial({ linewidth: 1.3, transparent: true, opacity: 0.8, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+const edges = [];
+function edge(a, b, s1, s2) {
+  const l = new LineSegments2(new LineSegmentsGeometry().setPositions([...a, ...b]), edgeMat);
+  scene.add(l);
+  edges.push({ l, s1, s2 });
+}
+const [xl, xr] = [-W / 2, W / 2];
+edge([xl, 0, 0], [xr, 0, 0], 0, 4); edge([xl, 0, D], [xr, 0, D], 0, 5);
+edge([xl, 0, 0], [xl, 0, D], 0, 2); edge([xr, 0, 0], [xr, 0, D], 0, 3);
+edge([xl, H, 0], [xr, H, 0], 1, 4); edge([xl, H, D], [xr, H, D], 1, 5);
+edge([xl, H, 0], [xl, H, D], 1, 2); edge([xr, H, 0], [xr, H, D], 1, 3);
+edge([xl, 0, 0], [xl, H, 0], 2, 4); edge([xr, 0, 0], [xr, H, 0], 3, 4);
+edge([xl, 0, D], [xl, H, D], 2, 5); edge([xr, 0, D], [xr, H, D], 3, 5);
+const _v = new THREE.Vector3();
+function updateEdges() {
+  const facing = SURF.map(s => camera.isOrthographicCamera
+    ? s.n.dot(camera.getWorldDirection(_v)) < -1e-4
+    : s.n.dot(_v.copy(camera.position).sub(s.p)) > 1e-4);
+  for (const e of edges) e.l.visible = facing[e.s1] || facing[e.s2];
+}
+
+/* ---------- Dimension strings and labels ---------- */
+const annot = [];     // { obj, views }
+const turning = [];   // dimension text that follows its line's on-screen angle
+const dimMat = new LineMaterial({ linewidth: 1.3, transparent: true, depthTest: false, depthWrite: false });
+const m = n => `${f1(n)} m`;
+
+// A chain of dimensions through collinear points, drawn `off` away from the object,
+// with extension lines and architect's slash ticks.
+function chain(pts, off, texts, views, opt = {}) {
+  const g = new THREE.Group();
+  const n = off.clone().normalize();
+  const u = pts[pts.length - 1].clone().sub(pts[0]).normalize();
+  const P = pts.map(p => p.clone().add(off));
+  let shortest = Infinity;
+  for (let i = 1; i < P.length; i++) shortest = Math.min(shortest, P[i].distanceTo(P[i - 1]));
+  const tick = u.clone().add(opt.tickN || n).normalize().multiplyScalar(Math.min(0.3, shortest * 0.3));
+  const s = [...P[0].toArray(), ...P[P.length - 1].toArray()];
+  pts.forEach((p, i) => {
+    if (opt.ext !== false) s.push(...p.clone().addScaledVector(n, 0.3).toArray(), ...P[i].clone().addScaledVector(n, 0.35).toArray());
+    s.push(...P[i].clone().sub(tick).toArray(), ...P[i].clone().add(tick).toArray());
+  });
+  const line = new LineSegments2(new LineSegmentsGeometry().setPositions(s), dimMat);
+  line.renderOrder = 10;
+  g.add(line);
+  texts.forEach((t, i) => {
+    const outer = document.createElement('div');
+    const pill = document.createElement('span');
+    pill.className = 'lbl';
+    pill.textContent = t;
+    outer.appendChild(pill);
+    const o = new CSS2DObject(outer);
+    o.position.copy(P[i]).add(P[i + 1]).multiplyScalar(0.5);
+    g.add(o);
+    turning.push({ g, pill, a: P[i], b: P[i + 1] });
+  });
+  scene.add(g);
+  annot.push({ obj: g, views });
+}
+
+function zoneLabel(title, sub, pos, views) {
+  const el = document.createElement('div');
+  el.className = 'zone';
+  const s = document.createElement('span');
+  s.textContent = sub;
+  el.append(title, s);
+  const o = new CSS2DObject(el);
+  o.position.copy(pos);
+  scene.add(o);
+  annot.push({ obj: o, views });
+}
+
+const TOP = ['3d', 'plan'];
+const depthStops = [0, STAGE.d, Z0, Z1, D];
+const depthTexts = [m(STAGE.d), m(FRONT_CLEAR), m(SEAT_DEPTH), m(REAR)];
+const side = (W - STAGE.w) / 2;
+// Plan and 3D: strings laid on the ground outside the walls
+chain(depthStops.map(z => V(W / 2, 0, z)), V(2.4, 0, 0), depthTexts, TOP);
+chain([V(-W / 2, 0, 0), V(-W / 2, 0, D)], V(-2.4, 0, 0), [m(D)], TOP);
+chain([-W / 2, -BLOCK_W / 2, -CENTER_AISLE / 2, CENTER_AISLE / 2, BLOCK_W / 2, W / 2].map(x => V(x, 0, D)), V(0, 0, 2.4),
+  [m(AISLE), m(HALF_W), m(CENTER_AISLE), m(HALF_W), m(AISLE)], TOP);
+// Plan only: stage width and overall width across the stage end
+chain([-W / 2, -STAGE.w / 2, STAGE.w / 2, W / 2].map(x => V(x, 0, 0)), V(0, 0, -2.4), [m(side), m(STAGE.w), m(side)], ['plan']);
+chain([V(-W / 2, 0, 0), V(W / 2, 0, 0)], V(0, 0, -5.2), [m(W)], ['plan']);
+// 3D only: overall width across the back (nearest the camera) and heights on visible corners
+chain([V(-W / 2, 0, D), V(W / 2, 0, D)], V(0, 0, 5.2), [m(W)], ['3d']);
+chain([V(-W / 2, 0, D), V(-W / 2, H, D)], V(-1.2, 0, 1.2), [m(H)], ['3d']);
+chain([V(STAGE.w / 2, 0, STAGE.d), V(STAGE.w / 2, STAGE.h, STAGE.d)], V(0.8, 0, 0.8), [m(STAGE.h)], ['3d']);
+// Long section: strings drawn in the cut plane
+const SX = -W / 2 - 0.5;
+chain(depthStops.map(z => V(SX, 0, z)), V(0, -1.7, 0), depthTexts, ['section']);
+chain([V(SX, 0, 0), V(SX, 0, D)], V(0, -3.6, 0), [m(D)], ['section']);
+chain([V(SX, 0, D), V(SX, H, D)], V(0, 0, 1.8), [m(H)], ['section']);
+chain([V(SX, 0, STAGE.d), V(SX, STAGE.h, STAGE.d)], V(0, 0, 0.6), [m(STAGE.h)], ['section']);
+chain([V(SX, STAGE.h, 0.6), V(SX, H, 0.6)], V(0, 0, 0), [`${m(H - STAGE.h)} clear`], ['section'], { ext: false, tickN: V(0, 0, 1) });
+
+const stageSub = `${f1(STAGE.w)} × ${f1(STAGE.d)} m, ${f1(STAGE.h)} m high`;
+const seatSub = `${SEATS.toLocaleString('en-US')} seats as drawn`;
+zoneLabel('Stage', stageSub, V(0, STAGE.h, STAGE.d / 2), TOP);
+zoneLabel('Seating', seatSub, V(0, 1.3, Z0 + SEAT_DEPTH / 2), TOP);
+// In the section, float the labels clear of the people and chair backs
+zoneLabel('Stage', stageSub, V(0, 3.0, STAGE.d / 2 + 0.4), ['section']);
+zoneLabel('Seating', seatSub, V(0, 3.0, Z0 + SEAT_DEPTH / 2), ['section']);
+
+const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+function orientLabels() {
+  const w = host.clientWidth, h = host.clientHeight;
+  for (const L of turning) {
+    if (!L.g.visible) continue;
+    _a.copy(L.a).project(camera);
+    _b.copy(L.b).project(camera);
+    const dx = (_b.x - _a.x) * w, dy = (_a.y - _b.y) * h;
+    if (dx * dx + dy * dy < 1e-6) continue;
+    let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (deg >= 90) deg -= 180; else if (deg < -90) deg += 180;   // never upside down; verticals read upward
+    L.pill.style.transform = `rotate(${deg.toFixed(1)}deg)`;
+  }
+}
+
+/* ---------- Views ---------- */
+const VIEWS = {
+  '3d':    { name: '3D overview', cap: 'Cut-away 3D view, near walls and ceiling removed', dir: [34, 30, 57], tgt: [0, 0, D / 2], fov: 30 },
+  plan:    { name: 'Plan', ortho: true },
+  section: { name: 'Long section', ortho: true, cap: 'Long section, seen from the audience’s left' },
+  // Eye-level cameras look straight down the centre aisle
+  back:    { name: 'View from the back', cap: 'Back wall, eye height 2.3 m (about a tech-desk riser)', fp: true, pos: [0, 2.3, D - 0.6], look: [0, 0.9, 0], fov: 42 },
+  stage:   { name: 'View from the stage', cap: 'Standing at the stage lip, eyes 1.6 m above the deck', fp: true, pos: [0, STAGE.h + 1.6, STAGE.d - 1], look: [0, 0.6, 38], fov: 62 },
+};
+let current = '3d';
+let planHoriz = true;
+let orthoBase = { sw: 1, sh: 1 };
+let tween = null;
+let dimsOn = true;
+let needsRender = true;
+let userMoved = false;
+
+const aspect = () => Math.max(0.2, host.clientWidth / Math.max(1, host.clientHeight));
+
+// Frame the 3D view so the room and its dimension strings fill the viewport at any aspect ratio.
+const FIT_3D = [
+  ...[xl, xr].flatMap(x => [0, H].flatMap(y => [0, D].map(z => V(x, y, z)))),
+  V(xr + 2.8, 0, 0), V(xr + 2.8, 0, D), V(xl - 2.8, 0, 0), V(xl - 2.8, 0, D),
+  V(xl, 0, D + 5.6), V(xr, 0, D + 5.6), V(xl - 1.3, H, D + 1.3),
+];
+const scratch = new THREE.PerspectiveCamera();
+function fitPersp(dir, tgt0, fov) {
+  const a = aspect();
+  Object.assign(scratch, { fov, aspect: a, near: 0.1, far: 3000 });
+  scratch.updateProjectionMatrix();
+  const T = tgt0.clone(), p = new THREE.Vector3();
+  const bounds = d => {
+    scratch.position.copy(T).addScaledVector(dir, d);
+    scratch.lookAt(T);
+    scratch.updateMatrixWorld();
+    const b = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, behind: false };
+    for (const q of FIT_3D) {
+      p.copy(q).project(scratch);
+      if (p.z >= 1) b.behind = true;
+      b.x0 = Math.min(b.x0, p.x); b.x1 = Math.max(b.x1, p.x);
+      b.y0 = Math.min(b.y0, p.y); b.y1 = Math.max(b.y1, p.y);
+    }
+    return b;
+  };
+  const tanY = Math.tan(THREE.MathUtils.degToRad(fov / 2));
+  // Leave room for the dimension labels, which keep their pixel size on small screens
+  const mx = Math.min(0.9, 1 - 150 / Math.max(1, host.clientWidth));
+  const my = Math.min(0.8, 1 - 130 / Math.max(1, host.clientHeight));
+  let d = 100;
+  for (let pass = 0; pass < 4; pass++) {
+    let lo = 10, hi = 1500;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2, b = bounds(mid);
+      if (!b.behind && b.x0 >= -mx && b.x1 <= mx && b.y0 >= -my && b.y1 <= my) hi = mid; else lo = mid;
+    }
+    d = hi;
+    const b = bounds(d);
+    const right = new THREE.Vector3().setFromMatrixColumn(scratch.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(scratch.matrixWorld, 1);
+    T.addScaledVector(right, ((b.x0 + b.x1) / 2) * d * tanY * a).addScaledVector(up, ((b.y0 + b.y1) / 2) * d * tanY);
+  }
+  return { pos: T.clone().addScaledVector(dir, d), tgt: T };
+}
+
+function frameOrtho(sw, sh, keepZoom) {
+  orthoBase = { sw, sh };
+  const a = aspect();
+  const half = Math.max(sh, sw / a) / 2;
+  Object.assign(ortho, { left: -half * a, right: half * a, top: half, bottom: -half });
+  if (!keepZoom) ortho.zoom = 1;
+  ortho.updateProjectionMatrix();
+}
+
+function fitOrtho(key) {
+  if (key === 'plan') {
+    planHoriz = aspect() >= 1.05;               // long axis across wide screens, down tall ones
+    ortho.up.set(planHoriz ? 1 : 0, 0, planHoriz ? 0 : -1);
+    ortho.position.set(0, 150, D / 2);
+    controls.target.set(0, 0, D / 2);
+    frameOrtho(planHoriz ? D + 16 : W + 14, planHoriz ? W + 14 : D + 16, false);
+  } else {
+    ortho.up.set(0, 1, 0);
+    ortho.position.set(-150, 1.8, D / 2);
+    controls.target.set(0, 1.8, D / 2);
+    frameOrtho(D + 11, 15, false);
+  }
+  ortho.lookAt(controls.target);
+}
+
+function caption(key) {
+  const c = key === 'plan' ? `Plan, stage at the ${planHoriz ? 'left' : 'top'}` : VIEWS[key].cap;
+  return BARE ? `${NAME} · ${c} · ${REV}, ${REV_DATE}` : c;
+}
+
+function refreshAnnot() {
+  for (const a of annot) a.obj.visible = dimsOn && a.views.includes(current);
+  needsRender = true;
+}
+
+function setLimits(v) {
+  controls.minDistance = v.fp ? 0.01 : 6;
+  controls.maxDistance = v.fp ? 5 : 240;
+  controls.minPolarAngle = v.fp ? 0.1 : 0;
+  controls.maxPolarAngle = v.fp ? Math.PI - 0.1 : Math.PI * 0.49;
+}
+
+function setView(key, animate = true) {
+  const v = VIEWS[key];
+  current = key;
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === key)));
+  document.getElementById('tbView').textContent = v.name;
+  controls._sphericalDelta?.set(0, 0, 0);
+  controls._panOffset?.set(0, 0, 0);
+  userMoved = false;
+
+  if (v.ortho) {
+    tween = null;
+    controls.enabled = true;
+    camera = ortho;
+    controls.object = ortho;
+    controls.enableRotate = false;
+    controls.enablePan = controls.enableZoom = true;
+    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    controls.touches.ONE = THREE.TOUCH.PAN;
+    fitOrtho(key);
+  } else {
+    const fromOrtho = camera === ortho;
+    camera = persp;
+    controls.object = persp;
+    controls.enableRotate = true;
+    controls.enablePan = controls.enableZoom = !v.fp;
+    controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    persp.near = v.fp ? 0.05 : 1;
+    persp.fov = v.fov;
+    persp.updateProjectionMatrix();
+    let pos, tgt;
+    if (v.fp) {
+      pos = V(...v.pos);
+      tgt = pos.clone().add(V(...v.look).sub(pos).normalize().multiplyScalar(0.6));   // look-around pivot just ahead of the eye
+    } else {
+      ({ pos, tgt } = fitPersp(V(...v.dir).normalize(), V(...v.tgt), v.fov));
+    }
+    if (animate && !fromOrtho && !reduceMotion) {
+      controls.enabled = false;
+      tween = { t0: performance.now(), p0: persp.position.clone(), p1: pos, q0: controls.target.clone(), q1: tgt, v };
+    } else {
+      tween = null;
+      persp.position.copy(pos);
+      controls.target.copy(tgt);
+      setLimits(v);
+      controls.enabled = true;
+    }
+  }
+  document.getElementById('caption').textContent = caption(key);
+  refreshAnnot();
+  controls.update();
+  needsRender = true;
+}
+
+function stepTween(now) {
+  const k = Math.min(1, (now - tween.t0) / 900);
+  const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  persp.position.lerpVectors(tween.p0, tween.p1, e);
+  controls.target.lerpVectors(tween.q0, tween.q1, e);
+  persp.lookAt(controls.target);
+  if (k === 1) {
+    setLimits(tween.v);
+    tween = null;
+    controls.enabled = true;
+    controls.update();
+  }
+}
+
+/* ---------- Scale bar (plan and section only) ---------- */
+const scalebar = document.getElementById('scalebar');
+function updateScale() {
+  if (camera !== ortho) { scalebar.hidden = true; return; }
+  const ppm = host.clientHeight / ((ortho.top - ortho.bottom) / ortho.zoom);
+  const L = [1, 2, 5, 10, 20, 50].find(n => n * ppm >= 90) || 50;
+  scalebar.hidden = false;
+  scalebar.querySelector('.bar').style.width = `${Math.round(L * ppm)}px`;
+  scalebar.querySelector('.t-mid').textContent = String(L / 2);
+  scalebar.querySelector('.t-end').textContent = `${L} m`;
+}
+
+/* ---------- Theme: line colours follow the page tokens ---------- */
+function applyTheme() {
+  const cs = getComputedStyle(document.documentElement);
+  const tok = n => cs.getPropertyValue(n).trim();
+  dimMat.color.set(tok('--dim'));
+  edgeMat.color.set(tok('--ink'));
+  grid.material.color.set(tok('--grid'));
+  needsRender = true;
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- Resize ---------- */
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  labels.setSize(w, h);
+  persp.aspect = w / h;
+  persp.updateProjectionMatrix();
+  if (camera === ortho) {
+    if (current === 'plan' && (aspect() >= 1.05) !== planHoriz) {
+      fitOrtho('plan');
+      document.getElementById('caption').textContent = caption('plan');
+    } else {
+      frameOrtho(orthoBase.sw, orthoBase.sh, true);
+    }
+  } else if (current === '3d' && !userMoved && !tween) {
+    const v = VIEWS['3d'], f = fitPersp(V(...v.dir).normalize(), V(...v.tgt), v.fov);
+    persp.position.copy(f.pos);
+    controls.target.copy(f.tgt);
+  }
+  needsRender = true;
+}
+new ResizeObserver(resize).observe(host);
+
+/* ---------- Wire up and run ---------- */
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.getElementById('dimsToggle').addEventListener('change', e => { dimsOn = e.target.checked; refreshAnnot(); });
+controls.addEventListener('change', () => { needsRender = true; });
+controls.addEventListener('start', () => { userMoved = true; });
+
+resize();
+applyTheme();
+const first = location.hash.slice(1);
+setView(VIEWS[first] ? first : '3d', false);
+
+let shadowsDone = false;
+const fallback = document.getElementById('fallback');
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (tween) { stepTween(now); needsRender = true; }
+  else if (controls.update()) needsRender = true;
+  if (!needsRender) return;
+  needsRender = false;
+  if (!shadowsDone) { renderer.shadowMap.needsUpdate = true; shadowsDone = true; }
+  updateEdges();
+  renderer.render(scene, camera);
+  orientLabels();
+  labels.render(scene, camera);
+  updateScale();
+  if (!fallback.hidden) { fallback.hidden = true; document.documentElement.dataset.ready = '1'; }
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
